@@ -1,3 +1,12 @@
+x-job-base: &job-base
+  image: nrl-prediction:latest
+  build: .
+  env_file: .env
+  depends_on:
+    db:
+      condition: service_healthy
+  profiles:
+    - jobs
 services:
   db:
     image: postgres:18
@@ -16,6 +25,7 @@ services:
       - backend
   
   api:
+    image: nrl-prediction:latest
     build: .
     env_file: .env
     ports:
@@ -23,10 +33,42 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - frontend
       - backend
+  
+  ingest:
+   <<: *job-base
+   command: ["python", "-m", "nrl.jobs.ingest"]
+   networks:
+    - frontend ## needs the internet egress
+    - backend
 
+  train:
+   <<: *job-base
+   command: ["python", "-m", "nrl.jobs.train"]
+   networks:
+    - backend
+
+  predict:
+   <<: *job-base
+   command: ["python", "-m", "nrl.jobs.predict"]
+   networks:
+    - backend
+    
+  score:
+   <<: *job-base
+   command: ["python", "-m", "nrl.jobs.score"]
+   networks:
+    - backend
+    
 networks:
   frontend:
   backend:

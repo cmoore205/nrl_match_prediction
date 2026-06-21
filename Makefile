@@ -6,8 +6,29 @@ up:
 down: 
 	docker compose down
 
+build:
+	docker compose --profile jobs build
+
 logs:
 	docker compose logs -f api
+
+ps:
+	docker compose ps -a
+
+shell: ## open shell inside API container
+	docker compose exec api bash
+
+ingest:
+	docker compose run --rm ingest
+
+predict:
+	docker compose run --rm predict
+
+train:
+	docker compose run --rm train
+
+score:
+	docker compose run --rm score
 
 test:
 	uv run pytest
@@ -17,6 +38,3 @@ lint:
 
 fmt: 		## auto-format
 	uv run ruff format .
-
-#train: 		## train the model
-	##TODO: add when I actually implement the model
